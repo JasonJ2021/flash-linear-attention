@@ -9,7 +9,6 @@ from flash_attn import flash_attn_func
 
 from fla.ops.retention import chunk_retention, parallel_retention
 from fla.ops.delta_rule import chunk_delta_rule, fused_chunk_delta_rule, fused_recurrent_delta_rule
-from flash_mla import flash_mla_sparse_fwd
 
 
 def get_mla_flop(b, s_q, h_q, d_qk, d_v, topk) -> float:
@@ -25,6 +24,17 @@ def get_delta_rule_flop(B, T, H, D) -> float:
     flops = 2 * (T * H * D * (6 * D + 8 * chunk_size)) * B
     return flops
 
+def get_flash_attn_flop(batch, seqlen, nheads, headdim, causal, mode="fwd"):
+    assert mode in ["fwd", "bwd", "fwd_bwd"]
+    f = 4 * batch * seqlen**2 * nheads * headdim // (2 if causal else 1)
+    return f if mode == "fwd" else (2.5 * f if mode == "bwd" else 3.5 * f)
+
+
+def get_flash_attn_memory(B, T, H, D, dtype_bytes=2) -> float:
+    # 读取 Q, K, V 和写入 O
+    memory_bytes = 4 * B * T * H * D * dtype_bytes
+    return memory_bytes
+
 
 @triton.testing.perf_report(
     triton.testing.Benchmark(
@@ -35,11 +45,11 @@ def get_delta_rule_flop(B, T, H, D) -> float:
         # argument name whose value corresponds to a different line in the plot
         line_arg='provider',
         # possible values for `line_arg``
-        line_vals=['chunk-delta', 'recurrent-delta', 'flash-attn', 'flash-mla'],
+        line_vals=['chunk-delta', 'recurrent-delta', 'flash-attn'],
         # label name for the lines
-        line_names=['chunk-delta', 'recurrent-delta', 'flash-attn', 'flash-mla'],
+        line_names=['chunk-delta', 'recurrent-delta', 'flash-attn'],
         # line styles
-        styles=[('green', '-'), ('blue', '-'), ('red', '-'), ('cyan', '-')],
+        styles=[('green', '-'), ('blue', '-'), ('red', '-')],
         ylabel="Execution Time (ms)",  # label name for the y-axis
         # name for the plot. Used also as a file name for saving the plot.
         plot_name="Performance",
@@ -94,24 +104,30 @@ def benchmark(T, provider):
         results = triton.testing.do_bench(lambda: chunk_delta_rule(q, k, v, beta), quantiles=quantiles)
         prefill_ans_time = results[0] / 1000
         prefill_flops = flop / prefill_ans_time / 1e12
+        memory_bytes = T * H * D * (26 + 4 * D / 64 + 6 * 64 / D)
+        memory_gb = memory_bytes / (1024 * 1024 * 1024)
+        prefill_bandwidth = memory_gb / prefill_ans_time
         print("================")
         print(
             f"Chunked Delta Rule: Running on TestParam(b={B}, s_q={T}, s_kv={T},h_q={H}dtype={dtype})")
         print(f"Prefill:  {prefill_ans_time * 1e6:4.0f} us, {prefill_flops:.3f} TFlops")
+        print(f"Prefill Bandwidth: {prefill_bandwidth:.3f} GB/s")
+        
     elif provider == 'recurrent-delta':
         results = triton.testing.do_bench(lambda: fused_recurrent_delta_rule(q, k, v, beta), quantiles=quantiles)
     elif provider == 'flash-attn':
         results = triton.testing.do_bench(lambda: flash_attn_func(q, k, v, causal=True), quantiles=quantiles)
-    elif provider == 'flash-mla':
-        flop = get_mla_flop(B, T, H, d_qk, d_v, top_k)
-        results = triton.testing.do_bench(lambda: flash_mla_sparse_fwd(
-            q.squeeze(0), kv.squeeze(0), indices.squeeze(0), sm_scale), quantiles=quantiles)
         prefill_ans_time = results[0] / 1000
+        flop = get_flash_attn_flop(B, T, H, D, causal=True)
         prefill_flops = flop / prefill_ans_time / 1e12
+        memory_bytes = get_flash_attn_memory(B, T, H, D)
+        memory_gb = memory_bytes / (1024 * 1024 * 1024)
+        prefill_bandwidth = memory_gb / prefill_ans_time
         print("================")
         print(
-            f"FlashMLA: Running on TestParam(b={B}, s_q={T}, s_kv={T}, topk={top_k}, h_q={H}, h_kv={h_kv}, d_qk={d_qk}, d_v={d_v}, dtype={dtype})")
+            f"Flash Attention: Running on TestParam(b={B}, s_q={T}, s_kv={T},h_q={H}dtype={dtype})")
         print(f"Prefill:  {prefill_ans_time * 1e6:4.0f} us, {prefill_flops:.3f} TFlops")
+        print(f"Prefill Bandwidth: {prefill_bandwidth:.3f} GB/s")
 
     return results
 

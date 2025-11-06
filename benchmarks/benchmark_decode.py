@@ -9,7 +9,6 @@ from flash_attn import flash_attn_func
 
 from fla.ops.retention import chunk_retention, parallel_retention
 from fla.ops.delta_rule import chunk_delta_rule, fused_chunk_delta_rule, fused_recurrent_delta_rule
-from flash_mla import flash_mla_sparse_fwd
 
 
 def get_mla_flop(b, s_q, h_q, d_qk, d_v, topk) -> float:
@@ -33,7 +32,7 @@ def run_fused_recurrent_delta_rule(q, k, v, beta, initial_state):
         # argument names to use as an x-axis for the plot
         x_names=['T'],
         # different possible values for `x_name`
-        x_vals=[16 * 2 ** i for i in range(0, 8)],
+        x_vals=[16 * 2 ** i for i in range(0, 9)],
         # argument name whose value corresponds to a different line in the plot
         line_arg='provider',
         # possible values for `line_arg``
