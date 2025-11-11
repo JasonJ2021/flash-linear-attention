@@ -340,53 +340,6 @@ class FusedChunkDeltaRuleFunction(torch.autograd.Function):
 
 
 def fused_chunk_delta_rule(
-    q: torch.Tensor,
-    k: torch.Tensor,
-    v: torch.Tensor,
-    beta: torch.Tensor,
-    scale: float = None,
-    initial_state: torch.Tensor = None,
-    output_final_state: bool = False,
-    head_first: bool = True
+    **kwargs
 ):
-    r"""
-    Args:
-        q (torch.Tensor):
-            queries of shape `[B, H, T, K]` if `head_first=True` else `[B, T, H, K]`.
-        k (torch.Tensor):
-            keys of shape `[B, H, T, K]` if `head_first=True` else `[B, T, H, K]`.
-        v (torch.Tensor):
-            values of shape `[B, H, T, V]` if `head_first=True` else `[B, T, H, V]`.
-        beta (torch.Tensor):
-             betas of shape `[B, H, T]` if `head_first=True` else `(B, T, H)`.
-        scale (Optional[int]):
-            Scale factor for the RetNet attention scores.
-            If not provided, it will default to `1 / sqrt(K)`. Default: `None`.
-        initial_state (Optional[torch.Tensor]):
-            Initial state of shape `[B, H, K, V]`. Default: `None`.
-        output_final_state (Optional[bool]):
-            Whether to output the final state of shape `[B, H, K, V]`. Default: `False`.
-        head_first (Optional[bool]):
-            Whether the inputs are in the head-first format.
-            Default: `True`.
-
-    Returns:
-        o (torch.Tensor):
-            Outputs of shape `[B, H, T, V]` if `head_first=True` else `[B, T, H, V]`.
-        final_state (torch.Tensor):
-            Final state of shape `[B, H, K, V]` if `output_final_state=True` else `None`.
-    """
-    BT = 32 if q.shape[-1] <= 128 else 16
-    assert q.dtype == k.dtype == v.dtype
-    assert q.dtype != torch.float32, "ChunkDeltaRuleFunction does not support float32. Please use bfloat16."
-    assert len(beta.shape) == 3, "beta must be of shape (batch size, num of head, seq len)."
-    if scale is None:
-        scale = k.shape[-1] ** -0.5
-    else:
-        assert scale > 0, "scale must be positive."
-    if not head_first:
-        q, k, v, beta = map(lambda x: x.transpose(1, 2), (q, k, v, beta))
-    o, final_state = FusedChunkDeltaRuleFunction.apply(q, k, v, beta, BT, scale, initial_state, output_final_state)
-    if not head_first:
-        o = o.transpose(1, 2)
-    return o, final_state
+    raise NotImplementedError("fused_chunk_delta_rule is deprecated. Please use chunk_delta_rule instead.")
