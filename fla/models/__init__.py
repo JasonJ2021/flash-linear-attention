@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 from fla.models.abc import ABCConfig, ABCForCausalLM, ABCModel
 from fla.models.bitnet import BitNetConfig, BitNetForCausalLM, BitNetModel
@@ -8,7 +7,7 @@ from fla.models.deltaformer import DeltaFormerConfig, DeltaFormerForCausalLM, De
 from fla.models.forgetting_transformer import (
     ForgettingTransformerConfig,
     ForgettingTransformerForCausalLM,
-    ForgettingTransformerModel
+    ForgettingTransformerModel,
 )
 from fla.models.gated_deltanet import GatedDeltaNetConfig, GatedDeltaNetForCausalLM, GatedDeltaNetModel
 from fla.models.gated_deltaproduct import GatedDeltaProductConfig, GatedDeltaProductForCausalLM, GatedDeltaProductModel
@@ -16,6 +15,7 @@ from fla.models.gla import GLAConfig, GLAForCausalLM, GLAModel
 from fla.models.gsa import GSAConfig, GSAForCausalLM, GSAModel
 from fla.models.hgrn import HGRNConfig, HGRNForCausalLM, HGRNModel
 from fla.models.hgrn2 import HGRN2Config, HGRN2ForCausalLM, HGRN2Model
+from fla.models.kda import KDAConfig, KDAForCausalLM, KDAModel
 from fla.models.lightnet import LightNetConfig, LightNetForCausalLM, LightNetModel
 from fla.models.linear_attn import LinearAttentionConfig, LinearAttentionForCausalLM, LinearAttentionModel
 from fla.models.log_linear_mamba2 import LogLinearMamba2Config, LogLinearMamba2ForCausalLM, LogLinearMamba2Model
@@ -46,6 +46,7 @@ __all__ = [
     'GSAConfig', 'GSAForCausalLM', 'GSAModel',
     'HGRNConfig', 'HGRNForCausalLM', 'HGRNModel',
     'HGRN2Config', 'HGRN2ForCausalLM', 'HGRN2Model',
+    'KDAConfig', 'KDAForCausalLM', 'KDAModel',
     'LightNetConfig', 'LightNetForCausalLM', 'LightNetModel',
     'LinearAttentionConfig', 'LinearAttentionForCausalLM', 'LinearAttentionModel',
     'LogLinearMamba2Config', 'LogLinearMamba2ForCausalLM', 'LogLinearMamba2Model',
